@@ -12,7 +12,9 @@ function getCipher() {
 function decryptAndSave(inputPath, outputPath) {
   const inputStream = fs.createReadStream(inputPath);
   const fileOutputStream = fs.createWriteStream(outputPath);
+
   const cipher = getCipher();
+
   const cipherInputStream = inputStream.pipe(cipher);
 
   cipherInputStream
@@ -25,14 +27,14 @@ function decryptAndSave(inputPath, outputPath) {
     });
 }
 
-const encryptedMonefyExport = process.argv[2]
+const encryptedMonefyBackup = process.argv[2]
 
-if(encryptedMonefyExport) {
-  if (!fs.existsSync(encryptedMonefyExport)) {
+if(encryptedMonefyBackup) {
+  if (!fs.existsSync(encryptedMonefyBackup)) {
     console.log('File not found!');
     return;
   }
-  decryptAndSave(encryptedMonefyExport, 'decrypted.db');
+  decryptAndSave(encryptedMonefyBackup, 'decrypted.db');
 } else {
-  console.log('Usage: node decrypt.js <encryptedMonefyExport>')
+  console.log('Usage: node decrypt.js <encryptedMonefyBackup>')
 }

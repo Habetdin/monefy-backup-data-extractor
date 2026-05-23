@@ -12,8 +12,8 @@
 </head>
 <body style="width: min(100%, 30rem); padding: 1rem;">
     <div style="border: 1px solid lightgrey; padding: 1rem;">
-        <div>Monefy uses SQLite3 for its database. When exporting this database, Monefy encrypts the sqlite3 database using a hardcoded key to make the export unusable unless it's imported directly into Monefy. This tool will decrypt the database and give you the original sqlite3 database.</div>
-        <div style="margin-top: 1rem">The decryption happens completely in browser and no data is transmitted anywhere.</div>
+        <div>Monefy uses SQLite3 for its database. When exporting this database, Monefy encrypts the SQLite3 database using a hardcoded key to make the export unusable unless it's imported directly into Monefy. This tool lets you decrypt a backup to get the original SQLite3 database, or encrypt a SQLite3 database back into a Monefy-compatible backup.</div>
+        <div style="margin-top: 1rem">Both operations happen completely in the browser and no data is transmitted anywhere.</div>
         <div style="margin-top: 1rem">
             <div>How to export from Monefy?</div>
             Open Monefy > Click the 3 dot menu on the top right > Settings > Create data backup
@@ -23,14 +23,15 @@
                 <input type="file" id="file" required>
             </div>
             <div style="margin-top: 1rem">
-                <button type="submit">Decrypt and download</button>
+                <button type="submit" name="action" value="decrypt">Decrypt and download</button>
+                <button type="submit" name="action" value="encrypt">Encrypt and download</button>
             </div>
         </form>
     </div>
     <div style="margin-top: 1rem">
         You can find the source code for this <a href="https://github.com/flawiddsouza/monefy-export-data-extractor">here</a>.
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" integrity="sha512-a+SUDuwNzXDvz4XrIcXHuCf089/iJAoN4lmrXJg18XnduKK6YlDHNRalv4yd1N40OKI80tFidF+rqTFKGPoWFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="module" src="main.js"></script>
 </body>
 </html>

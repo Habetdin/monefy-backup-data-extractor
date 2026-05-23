@@ -1,10 +1,10 @@
 const BACKUP_KEY = 'MyDifficultPassw'
 
-function isDecryptionSuccessful(decryptedBytes) {
-    const sqliteHeader = "SQLite format 3";
+function isSQLiteDatabase(inputBytes) {
+    const sqliteHeader = 'SQLite format 3'
     const headerBytes = new TextEncoder().encode(sqliteHeader)
     for (let i = 0; i < headerBytes.length; i++) {
-        if (decryptedBytes[i] !== headerBytes[i]) {
+        if (inputBytes[i] !== headerBytes[i]) {
             return false
         }
     }
@@ -20,6 +20,24 @@ function arrayBufferToWordArray(arrayBuffer) {
     return CryptoJS.lib.WordArray.create(words, arrayBuffer.byteLength)
 }
 
+function wordArrayToUint8Array(wordArray) {
+    const bytes = new Uint8Array(wordArray.sigBytes)
+    for (let i = 0; i < wordArray.sigBytes; i++) {
+        bytes[i] = wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8) & 0xff
+    }
+    return bytes
+}
+
+function downloadBlob(bytes, filename) {
+    const blob = new Blob([bytes], { type: 'application/octet-stream' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+}
+
 function decryptAndSave(file) {
     const fileReader = new FileReader()
 
@@ -32,23 +50,50 @@ function decryptAndSave(file) {
                 key,
                 { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 }
             )
-            const decryptedBytes = new Uint8Array(decryptedData.sigBytes)
-            for (let i = 0; i < decryptedData.sigBytes; i++) {
-                decryptedBytes[i] = decryptedData.words[i >>> 2] >>> (24 - (i % 4) * 8) & 0xff
+
+            const decryptedBytes = wordArrayToUint8Array(decryptedData)
+
+            if (!isSQLiteDatabase(decryptedBytes)) {
+                alert('Decryption failed: Given file is not a valid Monefy backup')
+                return
             }
-            if (isDecryptionSuccessful(decryptedBytes)) {
-                const blob = new Blob([decryptedBytes], { type: 'application/octet-stream' })
-                const url = URL.createObjectURL(blob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = file.name + '_decrypted.db'
-                link.click()
-                URL.revokeObjectURL(url)
-            } else {
-                alert('Decryption failed: Given file is not a valid Monefy export')
-            }
+
+            downloadBlob(decryptedBytes, file.name + '_decrypted.db')
         } catch (error) {
-            alert('Decryption failed: Given file is not a valid Monefy export')
+            alert('Decryption failed: ' + error.message)
+        }
+    }
+
+    fileReader.onerror = () => {
+        alert('File reading failed: ' + fileReader.error)
+    }
+
+    fileReader.readAsArrayBuffer(file)
+}
+
+function encryptAndSave(file) {
+    const fileReader = new FileReader()
+
+    fileReader.onload = async (event) => {
+        try {
+            if (!isSQLiteDatabase(new Uint8Array(event.target.result))) {
+                alert('Encryption failed: Given file is not a valid SQLite database')
+                return
+            }
+
+            const plainDataWordArray = arrayBufferToWordArray(event.target.result)
+            const key = CryptoJS.enc.Utf8.parse(BACKUP_KEY)
+            const encryptedData = CryptoJS.AES.encrypt(
+                plainDataWordArray,
+                key,
+                { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 }
+            )
+
+            const encryptedBytes = wordArrayToUint8Array(encryptedData.ciphertext)
+
+            downloadBlob(encryptedBytes, file.name + '_encrypted.monefy')
+        } catch (error) {
+            alert('Encryption failed: ' + error.message)
         }
     }
 
@@ -66,8 +111,13 @@ form.addEventListener('submit', (e) => {
     e.preventDefault()
     const file = fileInput.files[0]
     if (file) {
-        decryptAndSave(file)
+        const action = e.submitter?.value ?? 'decrypt'
+        if (action === 'encrypt') {
+            encryptAndSave(file)
+        } else {
+            decryptAndSave(file)
+        }
     } else {
-        console.log('Please select a file.')
+        alert('Please select a file.')
     }
 })
